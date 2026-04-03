@@ -7,7 +7,7 @@ const TEST_PDF_PATH = "/tmp/test_picpicpdf_e2e.pdf";
 
 test.beforeAll(async () => {
   // Create a test PDF with embedded images using PyMuPDF
-  execSync(`/home/ec2-user/anaconda3/bin/python3 -c "
+  execSync(`python3 -c "
 import fitz, struct, zlib
 doc = fitz.open()
 for i in range(3):

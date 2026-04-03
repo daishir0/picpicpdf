@@ -40,6 +40,14 @@ yarn-error.log*
 /outputs/
 /test-results/
 
+# environment-specific infrastructure
+/infrastructure/
+
+# project-local docs
+memo.md
+AGENTS.md
+CLAUDE.md
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
