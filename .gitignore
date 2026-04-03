@@ -39,6 +39,8 @@ yarn-error.log*
 # app temp files
 /outputs/
 /test-results/
+/tests/
+playwright.config.ts
 
 # environment-specific infrastructure
 /infrastructure/
