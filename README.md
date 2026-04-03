@@ -1,5 +1,7 @@
 # PicPicPDF
 
+![PicPicPDF Screenshot](public/screenshot.png)
+
 ## Overview
 PicPicPDF is a simple web tool that extracts embedded images from PDF files. Just drag and drop a PDF, and all embedded images are displayed as thumbnails for easy download — individually or as a ZIP archive.
 
@@ -65,6 +67,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ---
 
 # PicPicPDF
+
+![PicPicPDF スクリーンショット](public/screenshot.png)
 
 ## 概要
 PicPicPDFは、PDFファイルに埋め込まれた画像を抽出するシンプルなWebツールです。PDFをドラッグ&ドロップするだけで、埋め込まれた全画像がサムネイル表示され、個別またはZIPアーカイブとして簡単にダウンロードできます。
