@@ -43,7 +43,7 @@ npm run build
 npm start
 ```
 
-5. Open http://localhost:3029 in your browser.
+5. Open http://localhost:3020 in your browser.
 
 ## Usage
 
@@ -111,7 +111,7 @@ npm run build
 npm start
 ```
 
-5. ブラウザで http://localhost:3029 を開きます。
+5. ブラウザで http://localhost:3020 を開きます。
 
 ## 使い方
 
