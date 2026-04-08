@@ -1,7 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getImagePath } from "@/lib/extract";
 import fs from "fs/promises";
 import path from "path";
+
+// キャッシュを無効化
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 const MIME_MAP: Record<string, string> = {
   ".png": "image/png",
@@ -21,32 +25,51 @@ export async function GET(
   const filename = request.nextUrl.searchParams.get("file");
 
   if (!sessionId || !filename) {
-    return NextResponse.json({ error: "パラメータが不足しています" }, { status: 400 });
+    return new Response(JSON.stringify({ error: "パラメータが不足しています" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   const imagePath = getImagePath(sessionId, filename);
   if (!imagePath) {
-    return NextResponse.json({ error: "無効なリクエストです" }, { status: 400 });
+    return new Response(JSON.stringify({ error: "無効なリクエストです" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   try {
+    // ファイルの存在確認
+    await fs.access(imagePath);
+
+    // バイナリデータを読み込み
     const data = await fs.readFile(imagePath);
     const ext = path.extname(filename).toLowerCase();
     const contentType = MIME_MAP[ext] || "application/octet-stream";
 
     const download = request.nextUrl.searchParams.get("download") === "1";
 
-    const headers: Record<string, string> = {
+    const headers: HeadersInit = {
       "Content-Type": contentType,
-      "Cache-Control": "public, max-age=600",
+      "Content-Length": data.byteLength.toString(),
+      "Cache-Control": "no-store, must-revalidate",
+      "Pragma": "no-cache",
     };
 
     if (download) {
       headers["Content-Disposition"] = `attachment; filename="${filename}"`;
     }
 
-    return new NextResponse(data, { headers });
+    // Web標準のResponseでArrayBufferを返す
+    return new Response(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength), {
+      status: 200,
+      headers,
+    });
   } catch {
-    return NextResponse.json({ error: "画像が見つかりません" }, { status: 404 });
+    return new Response(JSON.stringify({ error: "画像が見つかりません" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
