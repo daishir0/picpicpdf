@@ -3,17 +3,16 @@ import { promisify } from "util";
 import path from "path";
 import fs from "fs/promises";
 import { v4 as uuidv4 } from "uuid";
-import type { ImageInfo, ExtractResult } from "./types";
+import type { ExtractResult, FileType, FontInfo, ImageInfo } from "./types";
 
 const execFileAsync = promisify(execFile);
 
 const PROJECT_ROOT = process.cwd();
 const OUTPUTS_DIR = path.join(PROJECT_ROOT, "outputs");
-const SCRIPT_PATH = path.join(PROJECT_ROOT, "scripts", "extract_images.py");
+const SCRIPT_PATH = path.join(PROJECT_ROOT, "scripts", "extract_assets.py");
 const PYTHON_CMD = process.env.PYTHON_CMD || "python3";
-const SESSION_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const SESSION_TTL_MS = 10 * 60 * 1000;
 
-// Track sessions for cleanup
 const sessions = new Map<string, { createdAt: number; dirPath: string }>();
 
 function scheduleCleanup(sessionId: string, dirPath: string) {
@@ -28,33 +27,45 @@ function scheduleCleanup(sessionId: string, dirPath: string) {
   }, SESSION_TTL_MS);
 }
 
-export async function extractImagesFromPdf(
-  pdfBuffer: Buffer
+interface ScriptResult {
+  fileType: FileType;
+  pageCount: number;
+  images: ImageInfo[];
+  fonts: FontInfo[];
+}
+
+export async function extractAssets(
+  fileBuffer: Buffer,
+  fileType: FileType
 ): Promise<ExtractResult> {
   const sessionId = uuidv4();
   const sessionDir = path.join(OUTPUTS_DIR, `tmp-${sessionId}`);
   const inputPath = path.join(sessionDir, "input.pdf");
-  const outputDir = path.join(sessionDir, "images");
 
   await fs.mkdir(sessionDir, { recursive: true });
-  await fs.mkdir(outputDir, { recursive: true });
-  await fs.writeFile(inputPath, pdfBuffer);
+  await fs.writeFile(inputPath, fileBuffer);
 
   try {
-    const { stdout, stderr } = await execFileAsync(PYTHON_CMD, [
-      SCRIPT_PATH,
-      inputPath,
-      outputDir,
-    ], { timeout: 60000 });
+    const { stdout, stderr } = await execFileAsync(
+      PYTHON_CMD,
+      [SCRIPT_PATH, inputPath, sessionDir, `--filetype=${fileType}`],
+      { timeout: 90000, maxBuffer: 64 * 1024 * 1024 }
+    );
 
     if (stderr) {
       console.error("Python stderr:", stderr);
     }
 
-    const images: ImageInfo[] = JSON.parse(stdout);
+    const parsed: ScriptResult = JSON.parse(stdout);
     scheduleCleanup(sessionId, sessionDir);
 
-    return { sessionId, images };
+    return {
+      sessionId,
+      fileType: parsed.fileType,
+      pageCount: parsed.pageCount,
+      images: parsed.images,
+      fonts: parsed.fonts,
+    };
   } catch (error) {
     await fs.rm(sessionDir, { recursive: true, force: true });
     throw error;
@@ -62,23 +73,27 @@ export async function extractImagesFromPdf(
 }
 
 export function getSessionDir(sessionId: string): string | null {
-  // Validate UUID format to prevent path traversal
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)) {
     return null;
   }
-  const dirPath = path.join(OUTPUTS_DIR, `tmp-${sessionId}`);
-  return dirPath;
+  return path.join(OUTPUTS_DIR, `tmp-${sessionId}`);
 }
 
-export function getImagePath(sessionId: string, filename: string): string | null {
+function safeAssetPath(sessionId: string, filename: string, subdir: string): string | null {
   const sessionDir = getSessionDir(sessionId);
   if (!sessionDir) return null;
 
-  // Prevent path traversal
   const sanitized = path.basename(filename);
   if (sanitized !== filename || filename.includes("..")) {
     return null;
   }
+  return path.join(sessionDir, subdir, sanitized);
+}
 
-  return path.join(sessionDir, "images", sanitized);
+export function getImagePath(sessionId: string, filename: string): string | null {
+  return safeAssetPath(sessionId, filename, "images");
+}
+
+export function getFontPath(sessionId: string, filename: string): string | null {
+  return safeAssetPath(sessionId, filename, "fonts");
 }

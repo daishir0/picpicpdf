@@ -39,9 +39,17 @@ export default function ThumbnailGrid({ images, sessionId }: ThumbnailGridProps)
     }
   };
 
+  if (images.length === 0) {
+    return (
+      <div className="w-full py-16 text-center">
+        <p className="text-gray-500">このファイルには画像がありません</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="w-full">
+      <div className="flex items-center justify-between mb-4">
         <p className="text-gray-600">
           <span className="font-semibold text-gray-800">{images.length}</span> 件の画像を検出
         </p>

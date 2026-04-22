@@ -8,14 +8,24 @@ interface DropZoneProps {
   disabled?: boolean;
 }
 
+const ACCEPTED_EXTENSIONS = [".pdf", ".ai"];
+
+function isAcceptedFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  return ACCEPTED_EXTENSIONS.some((ext) => name.endsWith(ext));
+}
+
 export default function DropZone({ onFileSelected, disabled }: DropZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    if (!disabled) setIsDragOver(true);
-  }, [disabled]);
+  const handleDragOver = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      if (!disabled) setIsDragOver(true);
+    },
+    [disabled]
+  );
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -29,7 +39,7 @@ export default function DropZone({ onFileSelected, disabled }: DropZoneProps) {
       if (disabled) return;
 
       const file = e.dataTransfer.files[0];
-      if (file && file.type === "application/pdf") {
+      if (file && isAcceptedFile(file)) {
         onFileSelected(file);
       }
     },
@@ -67,13 +77,17 @@ export default function DropZone({ onFileSelected, disabled }: DropZoneProps) {
       <input
         ref={inputRef}
         type="file"
-        accept=".pdf,application/pdf"
+        accept=".pdf,.ai,application/pdf,application/illustrator,application/postscript"
         onChange={handleChange}
         className="hidden"
         disabled={disabled}
       />
 
-      <div className={`mb-4 p-4 rounded-full transition-colors ${isDragOver ? "bg-blue-100" : "bg-gray-100"}`}>
+      <div
+        className={`mb-4 p-4 rounded-full transition-colors ${
+          isDragOver ? "bg-blue-100" : "bg-gray-100"
+        }`}
+      >
         {isDragOver ? (
           <FileText className="w-10 h-10 text-blue-500" />
         ) : (
@@ -82,7 +96,7 @@ export default function DropZone({ onFileSelected, disabled }: DropZoneProps) {
       </div>
 
       <p className="text-lg font-medium text-gray-700 mb-1">
-        {isDragOver ? "ドロップしてアップロード" : "PDFをドラッグ&ドロップ"}
+        {isDragOver ? "ドロップしてアップロード" : "PDF / Illustrator (.ai) をドラッグ&ドロップ"}
       </p>
       <p className="text-sm text-gray-400">
         またはクリックしてファイルを選択（最大100MB）
